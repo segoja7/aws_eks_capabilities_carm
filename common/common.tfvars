@@ -14,7 +14,7 @@ required_tags = {
 profile = {
    "dev"= {
     region = "us-east-1"
-    profile = "segoja7"
+    profile = "segoja7-hub"
 
   }
 }

@@ -107,22 +107,18 @@ resource "aws_identitystore_group" "argocd_admin" {
   description       = "ArgoCD ADMIN — mapped via the EKS ArgoCD capability"
 }
 
-# Optionally create the admin user and its group membership. 
-resource "aws_identitystore_user" "argocd_admin" {
+# Optionally map an EXISTING IdC user into the admin group (not create one — the
+# user already exists via IAM Identity Center / SSO, e.g. the person logged in
+# via `aws configure sso`). Looked up by username, not created.
+data "aws_identitystore_user" "argocd_admin" {
   count             = var.argocd_admin_user != null ? 1 : 0
   identity_store_id = one(data.aws_ssoadmin_instances.this.identity_store_ids)
 
-  display_name = "${var.argocd_admin_user.given_name} ${var.argocd_admin_user.family_name}"
-  user_name    = var.argocd_admin_user.username
-
-  name {
-    given_name  = var.argocd_admin_user.given_name
-    family_name = var.argocd_admin_user.family_name
-  }
-
-  emails {
-    value   = var.argocd_admin_user.email
-    primary = true
+  alternate_identifier {
+    unique_attribute {
+      attribute_path  = "UserName"
+      attribute_value = var.argocd_admin_user
+    }
   }
 }
 
@@ -130,5 +126,5 @@ resource "aws_identitystore_group_membership" "argocd_admin" {
   count             = var.argocd_admin_user != null ? 1 : 0
   identity_store_id = one(data.aws_ssoadmin_instances.this.identity_store_ids)
   group_id          = aws_identitystore_group.argocd_admin.group_id
-  member_id         = aws_identitystore_user.argocd_admin[0].user_id
+  member_id         = data.aws_identitystore_user.argocd_admin[0].user_id
 }

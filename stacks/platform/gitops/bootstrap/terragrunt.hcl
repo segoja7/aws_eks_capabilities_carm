@@ -31,6 +31,20 @@ dependency "ecr" {
   mock_outputs_merge_strategy_with_state  = "shallow"
 }
 
+# Cross-account: reads the SPOKE account's own remote state (its own backend/
+# profile, independent of this stack's hub credentials) for the CARM trust role
+# ARN, so the IAMRoleSelector always points at whatever role actually exists —
+# never a copy-pasted ARN.
+dependency "carm_trust" {
+  config_path = "../../../../accounts/spoke/stacks/carm-trust"
+
+  mock_outputs = {
+    carm_trust_role_arn = "arn:aws:iam::000000000000:role/mock-carm-trust"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
+  mock_outputs_merge_strategy_with_state  = "shallow"
+}
+
 locals {
   environment_vars = read_terragrunt_config(find_in_parent_folders("common/common.hcl"))
   env              = local.environment_vars.locals.environment
@@ -46,4 +60,6 @@ inputs = {
   # ArgoCD tracks the environment channel tag; must match MANIFESTS_TAG in the pipeline.
   manifests_repo = dependency.ecr.outputs.manifests_url
   manifests_tag  = local.env
+
+  spoke1_carm_role_arn = dependency.carm_trust.outputs.carm_trust_role_arn
 }

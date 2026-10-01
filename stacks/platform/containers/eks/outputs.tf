@@ -32,3 +32,8 @@ output "argocd_role_arn" {
   description = "ArgoCD capability role ARN — the principal spoke clusters grant access to (written to the platform-config ConfigMap the EKSCluster RGD reads via externalRef)"
   value       = module.argocd.iam_role_arn
 }
+
+output "ack_role_arn" {
+  description = "ACK capability role ARN (central account) — the principal the spoke account's CARM trust role allows to assume, so ACK can provision VPC+EKS cross-account"
+  value       = module.ack.iam_role_arn
+}

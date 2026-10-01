@@ -14,6 +14,18 @@ dependency "vpc" {
   mock_outputs_merge_strategy_with_state = "shallow"
 }
 
+# For the manifests-verifier Pod Identity role's ECR read scope (Frontier 2's
+# PreSync-hook double-check — notation verify, running inside the cluster).
+dependency "ecr" {
+  config_path = "../../containers/ecr"
+
+  mock_outputs = {
+    repository_arns = ["arn:aws:ecr:us-east-1:000000000000:repository/kcl-modules/mock"]
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
+  mock_outputs_merge_strategy_with_state  = "shallow"
+}
+
 locals {
   environment_vars = read_terragrunt_config(find_in_parent_folders("common/common.hcl"))
   env              = local.environment_vars.locals.environment
@@ -25,6 +37,8 @@ inputs = {
 
   vpc_id             = dependency.vpc.outputs.vpc_id
   private_subnet_ids = dependency.vpc.outputs.private_subnets
+
+  ecr_repository_arns = dependency.ecr.outputs.repository_arns
 
   tags = {
     ProjectCode = local.environment_vars.locals.project

@@ -28,6 +28,6 @@ oras_version = "v1.2.0"
 # --- ArgoCD identity ---
 argocd_admin_idc_group = "platform-admins"
 
-# IdC user to create and add to the admin group. 
-#   export TF_VAR_argocd_admin_user='{"username":"...","email":"...","given_name":"...","family_name":"..."}'
+# Existing IdC user to map into the admin group (looked up, not created).
+#   export TF_VAR_argocd_admin_user=javier.sepulveda
 

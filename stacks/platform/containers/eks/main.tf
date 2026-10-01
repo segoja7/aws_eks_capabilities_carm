@@ -15,8 +15,8 @@ module "eks" {
   subnet_ids = var.private_subnet_ids
 
   addons = {
-    coredns    = {}
-    kube-proxy = {}
+    coredns                = {}
+    kube-proxy             = {}
     vpc-cni                = { before_compute = true }
     eks-pod-identity-agent = { before_compute = true }
   }

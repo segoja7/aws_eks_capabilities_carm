@@ -54,14 +54,12 @@ variable "platform_repo_name" {
 }
 
 variable "argocd_admin_user" {
-  description = "IdC user to create and add to the ArgoCD admin group. null = manage the user by hand. Set via TF_VAR to keep the email out of committed files."
-  type = object({
-    username    = string
-    email       = string
-    given_name  = string
-    family_name = string
-  })
-  # The one variable that keeps a default: optional, and carries a personal email
-  # so it comes from TF_VAR_argocd_admin_user, never from a committed tfvars.
-  default = null
+  description = "Username of an EXISTING IdC user to map into the ArgoCD admin group (looked up, not created — they already exist via SSO). null = manage group membership by hand."
+  type        = string
+  default     = null
+}
+
+variable "ecr_repository_arns" {
+  description = "ECR repo ARNs (blueprints + manifests) the manifests-verifier Pod Identity role reads — the PreSync hook's notation verify needs to pull the artifact + its signature."
+  type        = list(string)
 }

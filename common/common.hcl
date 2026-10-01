@@ -1,7 +1,8 @@
 # Load variables in locals
 locals {
   # Default values for variables
-  profile           = "segoja7"
+  # Central/HUB account (700922282251) — Organizations management account.
+  profile           = "segoja7-hub"
   project           = "base-eks"
   deployment_region = "us-east-1"
   provider          = "aws"
@@ -16,9 +17,9 @@ locals {
 
   # Backend Configuration
   backend_region        = "us-east-1"
-  backend_bucket_name   = "test-wrapper-tfstate-071620260752"
-  backend_profile       = "segoja7"
-  backend_dynamodb_lock = "db-terraform-lock-071620260752"
+  backend_bucket_name   = "base-eks-tfstate-700922282251"
+  backend_profile       = "segoja7-hub"
+  backend_dynamodb_lock = "db-terraform-lock-700922282251"
   backend_key           = "terraform.tfstate"
   backend_encrypt = true
   # format cloud provider/client/projectname
@@ -43,17 +44,17 @@ variable "profile" {
   description = "Variable for credentials management."
   default = {
     default = {
-      profile = "segoja7"
+      profile = "segoja7-hub"
       region = "us-east-1"
 }
     dev  = {
-      profile = "segoja7"
+      profile = "segoja7-hub"
       region = "us-east-1"
 }
     prod = {
-      profile = "segoja7"
+      profile = "segoja7-hub"
       region = "us-east-1"
-    
+
 }
   }
 
