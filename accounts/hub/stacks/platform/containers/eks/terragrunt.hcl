@@ -2,6 +2,14 @@ include "root" {
   path = find_in_parent_folders("root.hcl")
 }
 
+include "account" {
+  path = find_in_parent_folders("account.hcl")
+}
+
+include "provider_aws" {
+  path = "${dirname(find_in_parent_folders("root.hcl"))}/common/additional_providers/provider_aws.hcl"
+}
+
 dependency "vpc" {
   config_path = "../../../foundation/network/vpc"
 
@@ -11,7 +19,7 @@ dependency "vpc" {
     public_subnets  = ["subnet-123456c", "subnet-123456d"]
   }
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
 }
 
 # For the manifests-verifier Pod Identity role's ECR read scope (Frontier 2's
@@ -27,12 +35,14 @@ dependency "ecr" {
 }
 
 locals {
-  environment_vars = read_terragrunt_config(find_in_parent_folders("common/common.hcl"))
-  env              = local.environment_vars.locals.environment
+  account_vars = read_terragrunt_config(find_in_parent_folders("account.hcl"))
+  common       = read_terragrunt_config(find_in_parent_folders("common/common.hcl"))
+  project      = local.account_vars.locals.project
+  env          = local.common.locals.environment
 }
 
 inputs = {
-  project     = local.environment_vars.locals.project
+  project     = local.project
   environment = local.env
 
   vpc_id             = dependency.vpc.outputs.vpc_id
@@ -41,7 +51,7 @@ inputs = {
   ecr_repository_arns = dependency.ecr.outputs.repository_arns
 
   tags = {
-    ProjectCode = local.environment_vars.locals.project
+    ProjectCode = local.project
     Framework   = "DevSecOps-IaC"
     Environment = local.env
     ManagedBy   = "terragrunt"

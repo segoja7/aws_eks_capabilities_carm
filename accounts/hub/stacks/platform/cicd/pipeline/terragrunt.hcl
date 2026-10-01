@@ -2,9 +2,19 @@ include "root" {
   path = find_in_parent_folders("root.hcl")
 }
 
+include "account" {
+  path = find_in_parent_folders("account.hcl")
+}
+
+include "provider_aws" {
+  path = "${dirname(find_in_parent_folders("root.hcl"))}/common/additional_providers/provider_aws.hcl"
+}
+
 locals {
-  environment_vars = read_terragrunt_config(find_in_parent_folders("common/common.hcl"))
-  env              = local.environment_vars.locals.environment
+  account_vars = read_terragrunt_config(find_in_parent_folders("account.hcl"))
+  common       = read_terragrunt_config(find_in_parent_folders("common/common.hcl"))
+  project      = local.account_vars.locals.project
+  env          = local.common.locals.environment
 }
 
 
@@ -23,7 +33,7 @@ dependency "ecr" {
 }
 
 inputs = {
-  project     = local.environment_vars.locals.project
+  project     = local.project
   environment = local.env
 
   ecr_registry        = dependency.ecr.outputs.registry_url
@@ -33,7 +43,7 @@ inputs = {
   signing_profile_arn = dependency.ecr.outputs.signing_profile_arn
 
   tags = {
-    ProjectCode = local.environment_vars.locals.project
+    ProjectCode = local.project
     Framework   = "DevSecOps-IaC"
     Environment = local.env
     ManagedBy   = "terragrunt"

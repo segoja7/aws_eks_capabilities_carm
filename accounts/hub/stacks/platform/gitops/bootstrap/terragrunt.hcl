@@ -2,6 +2,14 @@ include "root" {
   path = find_in_parent_folders("root.hcl")
 }
 
+include "account" {
+  path = find_in_parent_folders("account.hcl")
+}
+
+include "provider_aws" {
+  path = "${dirname(find_in_parent_folders("root.hcl"))}/common/additional_providers/provider_aws.hcl"
+}
+
 include "kubectl" {
   path = "${dirname(find_in_parent_folders("root.hcl"))}/common/additional_providers/provider_kubectl.hcl"
 }
@@ -36,7 +44,7 @@ dependency "ecr" {
 # ARN, so the IAMRoleSelector always points at whatever role actually exists —
 # never a copy-pasted ARN.
 dependency "carm_trust" {
-  config_path = "../../../../accounts/spoke/stacks/carm-trust"
+  config_path = "../../../../../spoke/stacks/carm-trust"
 
   mock_outputs = {
     carm_trust_role_arn = "arn:aws:iam::000000000000:role/mock-carm-trust"
@@ -46,8 +54,9 @@ dependency "carm_trust" {
 }
 
 locals {
-  environment_vars = read_terragrunt_config(find_in_parent_folders("common/common.hcl"))
-  env              = local.environment_vars.locals.environment
+  account_vars = read_terragrunt_config(find_in_parent_folders("account.hcl"))
+  common       = read_terragrunt_config(find_in_parent_folders("common/common.hcl"))
+  env          = local.common.locals.environment
 }
 
 inputs = {

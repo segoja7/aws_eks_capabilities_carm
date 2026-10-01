@@ -2,8 +2,17 @@ include "root" {
   path = find_in_parent_folders("root.hcl")
 }
 
+include "account" {
+  path = find_in_parent_folders("account.hcl")
+}
+
+include "provider_aws" {
+  path = "${dirname(find_in_parent_folders("root.hcl"))}/common/additional_providers/provider_aws.hcl"
+}
+
 locals {
-  environment_vars = read_terragrunt_config(find_in_parent_folders("common/common.hcl"))
+  account_vars = read_terragrunt_config(find_in_parent_folders("account.hcl"))
+  project      = local.account_vars.locals.project
 }
 
 # Cross-account dependency: reads the CENTRAL account's own remote state (its own
@@ -13,7 +22,7 @@ locals {
 # boundary is transparent to it. Applying `run --all` from the repo root builds
 # central first (this unit depends on it), then this trust role, in one pass.
 dependency "ack" {
-  config_path = "../../../../stacks/platform/containers/eks"
+  config_path = "../../../hub/stacks/platform/containers/eks"
 
   mock_outputs = {
     ack_role_arn = "arn:aws:iam::700922282251:role/mock-ack-capability-role"
@@ -22,11 +31,11 @@ dependency "ack" {
 }
 
 inputs = {
-  project           = local.environment_vars.locals.project
-  trusted_role_arn  = dependency.ack.outputs.ack_role_arn
+  project          = local.project
+  trusted_role_arn = dependency.ack.outputs.ack_role_arn
 
   tags = {
-    ProjectCode = local.environment_vars.locals.project
+    ProjectCode = local.project
     Framework   = "DevSecOps-IaC"
     Account     = "spoke"
     Layer       = "carm-trust"
