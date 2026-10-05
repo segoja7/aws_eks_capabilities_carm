@@ -1,12 +1,18 @@
 data "aws_region" "current" {}
 
 module "cicd" {
-  source = "../../../../modules/cicd"
+  source = "../../../../../../modules/cicd"
 
   name                   = "${var.project}-${var.environment}-cicd"
   source_repository_name = var.platform_repo_name
   source_branch          = var.platform_repo_branch
   force_destroy          = true #Demo purposes
+
+  # Only an approved PR merges into the trunk, and that merge is what starts the pipeline.
+  pull_request_approval = {
+    approvers_arn = "arn:aws:sts::${local.account_id}:assumed-role/${aws_iam_role.platform_approver.name}/*"
+    count         = 1
+  }
 
   build_projects = {
     render = {
@@ -25,6 +31,7 @@ module "cicd" {
         SIGNING_PROFILE_ARN = var.signing_profile_arn
         # git-direct consumer claims
         CLAIMS_REPO_URL = "https://git-codecommit.${data.aws_region.current.region}.amazonaws.com/v1/repos/${var.platform_repo_name}"
+        PLATFORM_BRANCH = var.platform_repo_branch
       }
     }
   }
