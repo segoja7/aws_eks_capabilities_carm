@@ -10,7 +10,7 @@ module "cicd" {
 
   # Only an approved PR merges into the trunk, and that merge is what starts the pipeline.
   pull_request_approval = {
-    approvers_arn = "arn:aws:sts::${local.account_id}:assumed-role/${aws_iam_role.platform_approver.name}/*"
+    approvers_arn = "arn:aws:sts::${local.account_id}:assumed-role/${module.platform_approver.name}/*"
     count         = 1
   }
 

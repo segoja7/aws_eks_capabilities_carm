@@ -30,11 +30,32 @@ resource "kubectl_manifest" "default_appproject" {
       namespace = "argocd"
     }
     spec = {
-      description                = "Permissive bootstrap project — only app-of-apps roots use it; real workloads use the scoped `platform`/`solo-claims` projects delivered via OCI."
-      sourceRepos                = ["*"]
-      destinations               = [{ server = "*", namespace = "*" }]
-      clusterResourceWhitelist   = [{ group = "*", kind = "*" }]
-      namespaceResourceWhitelist = [{ group = "*", kind = "*" }]
+      description  = "Closed: nothing may deploy through the default project. Every Application declares its own project."
+      sourceRepos  = []
+      destinations = []
+    }
+  })
+}
+
+# Only the app-of-apps root uses this project: it may pull from the manifests OCI
+# repo and create Application/AppProject objects in the argocd namespace.
+resource "kubectl_manifest" "bootstrap_appproject" {
+  yaml_body = yamlencode({
+    apiVersion = "argoproj.io/v1alpha1"
+    kind       = "AppProject"
+    metadata = {
+      name      = "bootstrap"
+      namespace = "argocd"
+    }
+    spec = {
+      description  = "App-of-apps root only: pulls the manifests artifact and creates child Applications/AppProjects in argocd."
+      sourceNamespaces = ["argocd"]
+      sourceRepos  = ["oci://${var.manifests_repo}"]
+      destinations = [{ name = "in-cluster", namespace = "argocd" }]
+      namespaceResourceWhitelist = [
+        { group = "argoproj.io", kind = "Application" },
+        { group = "argoproj.io", kind = "AppProject" },
+      ]
     }
   })
 }
@@ -52,7 +73,6 @@ resource "kubectl_manifest" "argocd_local_cluster" {
     stringData = {
       name    = "in-cluster"
       server  = var.cluster_arn
-      project = "default"
     }
   })
 }
@@ -62,7 +82,7 @@ resource "kubectl_manifest" "argocd_root_app" {
     manifests_repo = var.manifests_repo
     manifests_tag  = var.manifests_tag
   })
-  depends_on = [kubectl_manifest.argocd_local_cluster, kubectl_manifest.default_appproject]
+  depends_on = [kubectl_manifest.argocd_local_cluster, kubectl_manifest.bootstrap_appproject]
 }
 
 # Cross-account (CARM): any ACK resource created in this namespace gets routed to

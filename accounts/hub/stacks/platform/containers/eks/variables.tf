@@ -59,6 +59,11 @@ variable "argocd_admin_user" {
   default     = null
 }
 
+variable "spoke_carm_role_name" {
+  description = "Name of the spoke's CARM role (derived from the spoke's account.hcl project in terragrunt.hcl). ACK assumes it for cross-account claims."
+  type        = string
+}
+
 variable "ecr_repository_arns" {
   description = "ECR repo ARNs (blueprints + manifests) the manifests-verifier Pod Identity role reads — the PreSync hook's notation verify needs to pull the artifact + its signature."
   type        = list(string)

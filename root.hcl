@@ -4,6 +4,7 @@
 locals {
   common_vars  = read_terragrunt_config("${get_parent_terragrunt_dir()}/common/common.hcl")
   account_vars = read_terragrunt_config(find_in_parent_folders("account.hcl"))
+  environment  = read_terragrunt_config("${get_parent_terragrunt_dir()}/common/environment.hcl")
 
   # Downward path from the account root dir (where account.hcl lives) to the
   # current stack dir — e.g. "stacks/platform/containers/eks". We can't use

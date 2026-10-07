@@ -36,12 +36,17 @@ dependency "ecr" {
 
 locals {
   account_vars = read_terragrunt_config(find_in_parent_folders("account.hcl"))
+  # The spoke names its CARM role from its own project; read that same value here so
+  # the hub's trust never drifts from the role the spoke actually creates.
+  spoke_account_vars = read_terragrunt_config("${dirname(find_in_parent_folders("root.hcl"))}/accounts/spoke/account.hcl")
   common       = read_terragrunt_config(find_in_parent_folders("common/common.hcl"))
   project      = local.account_vars.locals.project
   env          = local.common.locals.environment
 }
 
 inputs = {
+  spoke_carm_role_name = "${local.spoke_account_vars.locals.project}-ack-carm-trust"
+
   project     = local.project
   environment = local.env
 

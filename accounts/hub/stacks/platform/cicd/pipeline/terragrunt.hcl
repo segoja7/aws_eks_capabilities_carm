@@ -18,6 +18,17 @@ locals {
 }
 
 
+dependency "eks" {
+  config_path = "../../containers/eks"
+
+  mock_outputs = {
+    argocd_role_arn                = "arn:aws:iam::123456789012:role/mock-argocd"
+    manifests_verifier_role_arn    = "arn:aws:iam::123456789012:role/mock-verifier"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
+  mock_outputs_merge_strategy_with_state  = "shallow"
+}
+
 dependency "ecr" {
   config_path = "../../containers/ecr"
 
@@ -39,6 +50,10 @@ inputs = {
   ecr_registry        = dependency.ecr.outputs.registry_url
   ecr_namespace       = dependency.ecr.outputs.namespace
   ecr_repository_arns = dependency.ecr.outputs.repository_arns
+  ecr_read_principal_arns = [
+    dependency.eks.outputs.argocd_role_arn,
+    dependency.eks.outputs.manifests_verifier_role_arn,
+  ]
   ecr_manifests_url   = dependency.ecr.outputs.manifests_url
   signing_profile_arn = dependency.ecr.outputs.signing_profile_arn
 

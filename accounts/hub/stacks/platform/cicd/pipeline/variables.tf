@@ -31,6 +31,11 @@ variable "ecr_repository_arns" {
   type        = list(string)
 }
 
+variable "ecr_read_principal_arns" {
+  description = "Roles allowed to read (pull/verify) the KCL and manifests repos besides the pipeline itself — ArgoCD's capability role and the PreSync hook's verifier role."
+  type        = list(string)
+}
+
 variable "kcl_version" {
   description = "KCL CLI version the pipeline installs (read by the install script's KCL_VERSION env var). Pinned to avoid the flaky latest lookup."
   type        = string

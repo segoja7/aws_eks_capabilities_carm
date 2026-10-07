@@ -5,8 +5,65 @@ module "ack" {
   type         = "ACK"
   cluster_name = module.eks.cluster_name
 
+  # Least privilege: the same officially published controller policies the spoke's
+  # CARM role uses (see accounts/spoke/stacks/carm-trust/main.tf), scoped to the
+  # resources our RGDs create. Not AdministratorAccess.
   iam_role_policies = {
-    AdministratorAccess = "arn:aws:iam::aws:policy/AdministratorAccess"
+    ec2fullaccess = "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
+  }
+
+  iam_policy_statements = {
+    ekscontroller = {
+      actions   = ["eks:*", "iam:GetRole", "iam:PassRole", "iam:ListAttachedRolePolicies", "ec2:DescribeSubnets"]
+      resources = ["*"]
+    }
+    iamcontroller = {
+      actions = [
+        "iam:GetGroup", "iam:CreateGroup", "iam:DeleteGroup", "iam:UpdateGroup",
+        "iam:GetRole", "iam:CreateRole", "iam:DeleteRole", "iam:UpdateRole",
+        "iam:PutRolePermissionsBoundary", "iam:PutUserPermissionsBoundary",
+        "iam:GetUser", "iam:CreateUser", "iam:DeleteUser", "iam:UpdateUser",
+        "iam:GetPolicy", "iam:CreatePolicy", "iam:DeletePolicy",
+        "iam:GetPolicyVersion", "iam:CreatePolicyVersion", "iam:DeletePolicyVersion",
+        "iam:ListPolicyVersions", "iam:ListPolicyTags",
+        "iam:ListAttachedGroupPolicies", "iam:GetGroupPolicy", "iam:PutGroupPolicy",
+        "iam:AttachGroupPolicy", "iam:DetachGroupPolicy", "iam:DeleteGroupPolicy",
+        "iam:ListAttachedRolePolicies", "iam:ListRolePolicies", "iam:GetRolePolicy",
+        "iam:PutRolePolicy", "iam:AttachRolePolicy", "iam:DetachRolePolicy",
+        "iam:DeleteRolePolicy", "iam:ListAttachedUserPolicies", "iam:ListUserPolicies",
+        "iam:GetUserPolicy", "iam:PutUserPolicy", "iam:AttachUserPolicy",
+        "iam:DetachUserPolicy", "iam:DeleteUserPolicy", "iam:ListRoleTags",
+        "iam:ListUserTags", "iam:TagPolicy", "iam:UntagPolicy", "iam:TagRole",
+        "iam:UntagRole", "iam:TagUser", "iam:UntagUser",
+        "iam:RemoveClientIDFromOpenIDConnectProvider",
+        "iam:ListOpenIDConnectProviderTags",
+        "iam:UpdateOpenIDConnectProviderThumbprint",
+        "iam:UntagOpenIDConnectProvider", "iam:AddClientIDToOpenIDConnectProvider",
+        "iam:DeleteOpenIDConnectProvider", "iam:GetOpenIDConnectProvider",
+        "iam:TagOpenIDConnectProvider", "iam:CreateOpenIDConnectProvider",
+        "iam:UpdateAssumeRolePolicy",
+      ]
+      resources = ["*"]
+    }
+    # Not in AWS's recommended policies; needed the first time an account gets an
+    # EKS cluster or nodegroup (see the carm-trust stack for the full explanation).
+    eksservicelinkedrole = {
+      actions   = ["iam:CreateServiceLinkedRole"]
+      resources = [
+        "arn:aws:iam::*:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS",
+        "arn:aws:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
+      ]
+      condition = [{
+        test     = "StringEquals"
+        variable = "iam:AWSServiceName"
+        values   = ["eks.amazonaws.com", "eks-nodegroup.amazonaws.com"]
+      }]
+    }
+    # Cross-account claims (IAMRoleSelector) assume the spoke's CARM role.
+    assumespokecarm = {
+      actions   = ["sts:AssumeRole", "sts:TagSession"]
+      resources = ["arn:aws:iam::*:role/${var.spoke_carm_role_name}"]
+    }
   }
 
   tags = var.tags

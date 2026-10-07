@@ -33,6 +33,11 @@ output "argocd_role_arn" {
   value       = module.argocd.iam_role_arn
 }
 
+output "manifests_verifier_role_arn" {
+  description = "Pod Identity role the PreSync hook uses to pull and verify the manifests artifact — allowed to read it in the ECR repo policy"
+  value       = module.manifests_verifier.iam_role_arn
+}
+
 output "ack_role_arn" {
   description = "ACK capability role ARN (central account) — the principal the spoke account's CARM trust role allows to assume, so ACK can provision VPC+EKS cross-account"
   value       = module.ack.iam_role_arn

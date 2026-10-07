@@ -6,7 +6,7 @@ metadata:
   name: platform-root
   namespace: argocd
 spec:
-  project: default
+  project: bootstrap
   source:
     repoURL: oci://${manifests_repo}
     targetRevision: ${manifests_tag}

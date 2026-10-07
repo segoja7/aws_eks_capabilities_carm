@@ -60,6 +60,9 @@ locals {
 }
 
 inputs = {
+  project     = local.account_vars.locals.project
+  environment = local.env
+
   cluster_name                       = dependency.eks.outputs.cluster_name
   cluster_arn                        = dependency.eks.outputs.cluster_arn
   cluster_endpoint                   = dependency.eks.outputs.cluster_endpoint
