@@ -12,6 +12,10 @@ node_desired_size   = 2
 platform_repo_name   = "platform-engineering-from-scratch"
 platform_repo_branch = "main"
 
+# --- Claims repo (SEPARATE repo and governance from the platform repo) ---
+claims_repo_name   = "platform-claims"
+claims_repo_branch = "main"
+
 # OCI
 
 # --- ECR (KCL libraries published as OCI artifacts) ---

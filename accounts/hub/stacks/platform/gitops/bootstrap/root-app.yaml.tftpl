@@ -7,12 +7,22 @@ metadata:
   namespace: argocd
 spec:
   project: bootstrap
-  source:
-    repoURL: oci://${manifests_repo}
-    targetRevision: ${manifests_tag}
-    path: rendered/apps
-    directory:
-      recurse: true
+  sources:
+    # Everything that doesn't need digest-pinning: AppProjects, user-claims.
+    # layer-1-rgds used to live here too; it moved to the git source below so it
+    # can be pinned to a digest without the self-reference problem that creates.
+    - repoURL: oci://${manifests_repo}
+      targetRevision: ${manifests_tag}
+      path: rendered/apps
+      directory:
+        recurse: true
+    # layer-1-rgds, resolved and committed — never templated into the OCI bundle.
+    # Updated only by the pipeline's promotion PR, after a human approves it.
+    - repoURL: ${platform_repo_git_url}
+      targetRevision: main
+      path: platform/gitops/apps-pinned
+      directory:
+        recurse: true
   destination:
     name: in-cluster
     namespace: argocd

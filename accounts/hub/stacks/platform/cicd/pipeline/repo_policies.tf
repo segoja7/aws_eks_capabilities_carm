@@ -1,8 +1,3 @@
-# One policy per repo (ECR allows only one). An explicit Deny in a repository
-# policy wins over any Allow, including the admin's, so the rules below hold even
-# for identities that have the permission in their own IAM policies. ECR repository
-# policies take the repository as the implicit resource, so no Resource element.
-#
 #  - Publish: only the pipeline role.
 #  - Read:    only the pipeline, ArgoCD's capability role and the PreSync verifier.
 locals {

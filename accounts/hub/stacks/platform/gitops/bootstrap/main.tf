@@ -1,6 +1,9 @@
-# Platform config the KRO RGDs read at reconcile time (externalRef data source).
-# Holds the ArgoCD capability role ARN so the EKSCluster RGD can grant each new
-# spoke's AccessEntry to it — resolved in-cluster, not injected at render.
+data "aws_region" "current" {}
+
+locals {
+  platform_repo_git_url = "https://git-codecommit.${data.aws_region.current.region}.amazonaws.com/v1/repos/${var.platform_repo_name}"
+}
+
 resource "kubectl_manifest" "platform_config" {
   yaml_body = yamlencode({
     apiVersion = "v1"
@@ -10,17 +13,13 @@ resource "kubectl_manifest" "platform_config" {
       namespace = "kube-system"
     }
     data = {
-      argocdRoleArn = var.argocd_role_arn
+      argocdRoleArn           = var.argocd_role_arn
+      permissionsBoundaryArn  = var.ack_created_roles_boundary_arn
     }
   })
 }
 
-# Managed ArgoCD ships with ZERO AppProjects (unlike OSS ArgoCD, which auto-creates
-# `default`). The seeded `platform-root` Application references `project: default`,
-# so without this the whole app-of-apps is blocked: "InvalidSpecError: Application
-# referencing project default which does not exist" — even though the OCI artifact
-# itself is fine. Child projects (platform, solo-claims) arrive inside the OCI
-# artifact later; only this bootstrap-level `default` needs seeding here.
+
 resource "kubectl_manifest" "default_appproject" {
   yaml_body = yamlencode({
     apiVersion = "argoproj.io/v1alpha1"
@@ -37,8 +36,6 @@ resource "kubectl_manifest" "default_appproject" {
   })
 }
 
-# Only the app-of-apps root uses this project: it may pull from the manifests OCI
-# repo and create Application/AppProject objects in the argocd namespace.
 resource "kubectl_manifest" "bootstrap_appproject" {
   yaml_body = yamlencode({
     apiVersion = "argoproj.io/v1alpha1"
@@ -50,7 +47,7 @@ resource "kubectl_manifest" "bootstrap_appproject" {
     spec = {
       description  = "App-of-apps root only: pulls the manifests artifact and creates child Applications/AppProjects in argocd."
       sourceNamespaces = ["argocd"]
-      sourceRepos  = ["oci://${var.manifests_repo}"]
+      sourceRepos  = ["oci://${var.manifests_repo}", local.platform_repo_git_url]
       destinations = [{ name = "in-cluster", namespace = "argocd" }]
       namespaceResourceWhitelist = [
         { group = "argoproj.io", kind = "Application" },
@@ -79,17 +76,15 @@ resource "kubectl_manifest" "argocd_local_cluster" {
 
 resource "kubectl_manifest" "argocd_root_app" {
   yaml_body = templatefile("${path.module}/root-app.yaml.tftpl", {
-    manifests_repo = var.manifests_repo
-    manifests_tag  = var.manifests_tag
+    manifests_repo         = var.manifests_repo
+    manifests_tag          = var.manifests_tag
+    platform_repo_git_url  = local.platform_repo_git_url
   })
   depends_on = [kubectl_manifest.argocd_local_cluster, kubectl_manifest.bootstrap_appproject]
 }
 
 # Cross-account (CARM): any ACK resource created in this namespace gets routed to
-# the spoke1 account via the IAMRoleSelector below. A dedicated namespace per spoke
-# account keeps this an explicit, scoped trust boundary — reusing `default` (where
-# the same-account git-direct claims already live) would silently redirect any
-# future claim landing there to the spoke account instead.
+# the spoke1 account via the IAMRoleSelector below. 
 resource "kubectl_manifest" "spoke1_namespace" {
   yaml_body = yamlencode({
     apiVersion = "v1"
@@ -136,4 +131,48 @@ resource "kubectl_manifest" "manifests_verifier_sa" {
       namespace = "argocd"
     }
   })
+}
+
+# First native Kubernetes RBAC the verifier has — everything else it holds is AWS
+# IAM. Scoped to reading exactly its own Application: the hook uses this to look
+# up the digest it's about to verify (its own .spec.source.targetRevision), which
+# by the time PreSync runs is already the new, git-pinned value. No other way to
+# know that digest without the same self-reference problem the pinning solved.
+resource "kubectl_manifest" "manifests_verifier_role" {
+  yaml_body = yamlencode({
+    apiVersion = "rbac.authorization.k8s.io/v1"
+    kind       = "Role"
+    metadata = {
+      name      = "manifests-verifier"
+      namespace = "argocd"
+    }
+    rules = [{
+      apiGroups     = ["argoproj.io"]
+      resources     = ["applications"]
+      resourceNames = ["layer-1-rgds"]
+      verbs         = ["get"]
+    }]
+  })
+}
+
+resource "kubectl_manifest" "manifests_verifier_rolebinding" {
+  yaml_body = yamlencode({
+    apiVersion = "rbac.authorization.k8s.io/v1"
+    kind       = "RoleBinding"
+    metadata = {
+      name      = "manifests-verifier"
+      namespace = "argocd"
+    }
+    subjects = [{
+      kind      = "ServiceAccount"
+      name      = "manifests-verifier"
+      namespace = "argocd"
+    }]
+    roleRef = {
+      apiGroup = "rbac.authorization.k8s.io"
+      kind     = "Role"
+      name     = "manifests-verifier"
+    }
+  })
+  depends_on = [kubectl_manifest.manifests_verifier_sa, kubectl_manifest.manifests_verifier_role]
 }

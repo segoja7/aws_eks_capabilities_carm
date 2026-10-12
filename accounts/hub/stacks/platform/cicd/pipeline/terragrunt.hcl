@@ -29,6 +29,16 @@ dependency "eks" {
   mock_outputs_merge_strategy_with_state  = "shallow"
 }
 
+dependency "claims_repo" {
+  config_path = "../claims-repo"
+
+  mock_outputs = {
+    claims_repo_url = "https://git-codecommit.us-east-1.amazonaws.com/v1/repos/mock-claims"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
+  mock_outputs_merge_strategy_with_state  = "shallow"
+}
+
 dependency "ecr" {
   config_path = "../../containers/ecr"
 
@@ -56,6 +66,7 @@ inputs = {
   ]
   ecr_manifests_url   = dependency.ecr.outputs.manifests_url
   signing_profile_arn = dependency.ecr.outputs.signing_profile_arn
+  claims_repo_url     = dependency.claims_repo.outputs.claims_repo_url
 
   tags = {
     ProjectCode = local.project

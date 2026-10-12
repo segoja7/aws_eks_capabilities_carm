@@ -1,5 +1,3 @@
-# `project` and `profile` come from the generated provider.tf (common.hcl).
-
 variable "environment" {
   description = "Environment name"
   type        = string

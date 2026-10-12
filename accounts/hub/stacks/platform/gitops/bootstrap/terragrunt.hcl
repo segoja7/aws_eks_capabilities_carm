@@ -23,12 +23,12 @@ dependency "eks" {
     cluster_endpoint                   = "https://mock.eks.amazonaws.com"
     cluster_certificate_authority_data = "bW9jaw=="
     argocd_role_arn                    = "arn:aws:iam::000000000000:role/mock-argocd"
+    ack_created_roles_boundary_arn     = "arn:aws:iam::000000000000:policy/mock-boundary"
   }
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
   mock_outputs_merge_strategy_with_state  = "shallow"
 }
 
-# The seed's source is the manifests OCI artifact in ECR (repoURL oci://...).
 dependency "ecr" {
   config_path = "../../containers/ecr"
 
@@ -39,10 +39,6 @@ dependency "ecr" {
   mock_outputs_merge_strategy_with_state  = "shallow"
 }
 
-# Cross-account: reads the SPOKE account's own remote state (its own backend/
-# profile, independent of this stack's hub credentials) for the CARM trust role
-# ARN, so the IAMRoleSelector always points at whatever role actually exists —
-# never a copy-pasted ARN.
 dependency "carm_trust" {
   config_path = "../../../../../spoke/stacks/carm-trust"
 
@@ -68,8 +64,8 @@ inputs = {
   cluster_endpoint                   = dependency.eks.outputs.cluster_endpoint
   cluster_certificate_authority_data = dependency.eks.outputs.cluster_certificate_authority_data
   argocd_role_arn                    = dependency.eks.outputs.argocd_role_arn
+  ack_created_roles_boundary_arn     = dependency.eks.outputs.ack_created_roles_boundary_arn
 
-  # ArgoCD tracks the environment channel tag; must match MANIFESTS_TAG in the pipeline.
   manifests_repo = dependency.ecr.outputs.manifests_url
   manifests_tag  = local.env
 

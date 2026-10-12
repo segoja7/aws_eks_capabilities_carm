@@ -29,9 +29,13 @@ module "cicd" {
         ORAS_VERSION   = var.oras_version
         # Supply-chain: notation-verify gate pins to this profile (Frontier 1)
         SIGNING_PROFILE_ARN = var.signing_profile_arn
-        # git-direct consumer claims
-        CLAIMS_REPO_URL = "https://git-codecommit.${data.aws_region.current.region}.amazonaws.com/v1/repos/${var.platform_repo_name}"
-        PLATFORM_BRANCH = var.platform_repo_branch
+        # The platform repo's own git URL — used by the promotion step to clone and
+        # PR the pinned layer-1-rgds.yaml. NOT the claims repo (separate repo now).
+        PLATFORM_REPO_URL = "https://git-codecommit.${data.aws_region.current.region}.amazonaws.com/v1/repos/${var.platform_repo_name}"
+        PLATFORM_BRANCH    = var.platform_repo_branch
+        # Consumer claims — separate repo, separate governance.
+        CLAIMS_REPO_URL    = var.claims_repo_url
+        CLAIMS_BRANCH      = var.claims_repo_branch
       }
     }
   }

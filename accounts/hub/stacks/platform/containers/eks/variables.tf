@@ -48,6 +48,11 @@ variable "argocd_admin_idc_group" {
   type        = string
 }
 
+variable "claims_repo_arn" {
+  description = "ARN of the separate claims CodeCommit repo — ArgoCD's user-claims Application pulls from it directly"
+  type        = string
+}
+
 variable "platform_repo_name" {
   description = "CodeCommit platform repo ArgoCD pulls rendered manifests from; grants codecommit:GitPull to the ArgoCD capability role. Shared with the cicd stack."
   type        = string

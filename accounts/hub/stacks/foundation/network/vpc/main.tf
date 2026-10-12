@@ -11,8 +11,6 @@ module "vpc" {
   private_subnets = var.private_subnets
   public_subnets  = var.public_subnets
 
-  # EKS load balancer auto-discovery: internet-facing LBs land in public
-  # subnets, internal ones in private.
   public_subnet_tags  = { "kubernetes.io/role/elb" = "1" }
   private_subnet_tags = { "kubernetes.io/role/internal-elb" = "1" }
 

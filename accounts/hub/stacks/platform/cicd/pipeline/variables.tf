@@ -1,5 +1,3 @@
-# `project` and `profile` come from the generated provider.tf (common.hcl).
-
 variable "environment" {
   description = "Environment name"
   type        = string
@@ -29,6 +27,16 @@ variable "ecr_namespace" {
 variable "ecr_repository_arns" {
   description = "ARNs of every library repo — scopes the CodeBuild role's push/pull IAM"
   type        = list(string)
+}
+
+variable "claims_repo_url" {
+  description = "Git clone URL of the separate claims repo (from the claims-repo stack output)"
+  type        = string
+}
+
+variable "claims_repo_branch" {
+  description = "Branch ArgoCD's user-claims Application watches on the claims repo"
+  type        = string
 }
 
 variable "ecr_read_principal_arns" {

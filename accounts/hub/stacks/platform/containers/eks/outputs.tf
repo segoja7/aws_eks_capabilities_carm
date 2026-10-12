@@ -28,6 +28,11 @@ output "oidc_provider_arn" {
   value       = module.eks.oidc_provider_arn
 }
 
+output "ack_created_roles_boundary_arn" {
+  description = "Permissions boundary ACK must set on every role it creates — written to platform-config, read by eks.k's clusterRole/nodeRole via externalRef"
+  value       = aws_iam_policy.ack_created_roles_boundary.arn
+}
+
 output "argocd_role_arn" {
   description = "ArgoCD capability role ARN — the principal spoke clusters grant access to (written to the platform-config ConfigMap the EKSCluster RGD reads via externalRef)"
   value       = module.argocd.iam_role_arn

@@ -5,9 +5,6 @@ module "ack" {
   type         = "ACK"
   cluster_name = module.eks.cluster_name
 
-  # Least privilege: the same officially published controller policies the spoke's
-  # CARM role uses (see accounts/spoke/stacks/carm-trust/main.tf), scoped to the
-  # resources our RGDs create. Not AdministratorAccess.
   iam_role_policies = {
     ec2fullaccess = "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
   }
@@ -20,7 +17,7 @@ module "ack" {
     iamcontroller = {
       actions = [
         "iam:GetGroup", "iam:CreateGroup", "iam:DeleteGroup", "iam:UpdateGroup",
-        "iam:GetRole", "iam:CreateRole", "iam:DeleteRole", "iam:UpdateRole",
+        "iam:GetRole", "iam:DeleteRole", "iam:UpdateRole",
         "iam:PutRolePermissionsBoundary", "iam:PutUserPermissionsBoundary",
         "iam:GetUser", "iam:CreateUser", "iam:DeleteUser", "iam:UpdateUser",
         "iam:GetPolicy", "iam:CreatePolicy", "iam:DeletePolicy",
@@ -45,8 +42,7 @@ module "ack" {
       ]
       resources = ["*"]
     }
-    # Not in AWS's recommended policies; needed the first time an account gets an
-    # EKS cluster or nodegroup (see the carm-trust stack for the full explanation).
+  
     eksservicelinkedrole = {
       actions   = ["iam:CreateServiceLinkedRole"]
       resources = [
@@ -63,6 +59,16 @@ module "ack" {
     assumespokecarm = {
       actions   = ["sts:AssumeRole", "sts:TagSession"]
       resources = ["arn:aws:iam::*:role/${var.spoke_carm_role_name}"]
+    }
+
+    createroleboundedonly = {
+      actions   = ["iam:CreateRole"]
+      resources = ["*"]
+      condition = [{
+        test     = "StringEquals"
+        variable = "iam:PermissionsBoundary"
+        values   = [aws_iam_policy.ack_created_roles_boundary.arn]
+      }]
     }
   }
 
@@ -114,18 +120,18 @@ module "argocd" {
       resources = ["*"]
     }
     CodeCommitPull = {
-      actions   = ["codecommit:GitPull"]
-      resources = ["arn:${data.aws_partition.current.partition}:codecommit:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:${var.platform_repo_name}"]
+      actions = ["codecommit:GitPull"]
+      resources = [
+        "arn:${data.aws_partition.current.partition}:codecommit:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:${var.platform_repo_name}",
+        var.claims_repo_arn,
+      ]
     }
   }
 
   tags = var.tags
 }
 
-#   - ArgoCD: needs cluster-admin to deploy anything to the cluster.
-#   - KRO: its auto-created AmazonEKSKROPolicy only covers RGDs + instances, NOT the
-#     child resources the RGDs template (ACK resources). Documented gap:
-#     https://docs.aws.amazon.com/eks/latest/userguide/kro-permissions.html
+# https://docs.aws.amazon.com/eks/latest/userguide/kro-permissions.html
 # Demo = ClusterAdmin; production = a custom ClusterRole scoped to the ACK apiGroups bound to a stable group.
 
 resource "time_sleep" "capabilities_ready" {

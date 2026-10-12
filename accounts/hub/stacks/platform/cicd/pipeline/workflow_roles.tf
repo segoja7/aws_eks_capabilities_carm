@@ -1,13 +1,10 @@
 data "aws_caller_identity" "current" {}
 
-# Separation of duties by IAM role, not by person: CodeCommit forbids the PR
-# author from approving their own PR, so the one who pushes (platform-dev) and
-# the one who approves (platform-approver) must be different principals.
+
 locals {
   account_id = data.aws_caller_identity.current.account_id
   repo_arn   = "arn:aws:codecommit:${data.aws_region.current.region}:${local.account_id}:${var.platform_repo_name}"
 
-  # Only the operator's SSO admin session may assume either role.
   operator_trust = {
     operator = {
       actions = ["sts:AssumeRole"]
@@ -24,26 +21,26 @@ locals {
   }
 }
 
-# Adopt the existing roles and their inline policies instead of recreating them.
-moved {
-  from = aws_iam_role.platform_dev
-  to   = module.platform_dev.aws_iam_role.this[0]
-}
+# # Adopt the existing roles and their inline policies instead of recreating them.
+# moved {
+#   from = aws_iam_role.platform_dev
+#   to   = module.platform_dev.aws_iam_role.this[0]
+# }
 
-moved {
-  from = aws_iam_role_policy.platform_dev
-  to   = module.platform_dev.aws_iam_role_policy.inline[0]
-}
+# moved {
+#   from = aws_iam_role_policy.platform_dev
+#   to   = module.platform_dev.aws_iam_role_policy.inline[0]
+# }
 
-moved {
-  from = aws_iam_role.platform_approver
-  to   = module.platform_approver.aws_iam_role.this[0]
-}
+# moved {
+#   from = aws_iam_role.platform_approver
+#   to   = module.platform_approver.aws_iam_role.this[0]
+# }
 
-moved {
-  from = aws_iam_role_policy.platform_approver
-  to   = module.platform_approver.aws_iam_role_policy.inline[0]
-}
+# moved {
+#   from = aws_iam_role_policy.platform_approver
+#   to   = module.platform_approver.aws_iam_role_policy.inline[0]
+# }
 
 module "platform_dev" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role"
@@ -73,8 +70,7 @@ module "platform_dev" {
       ]
       resources = [local.repo_arn]
     }
-    # Direct push to the trunk is denied; the only path to main is a merged PR,
-    # and CodeCommit enforces the approval rule on that merge.
+    # Direct push is denied PR, and CodeCommit enforces the approval rule on that merge.
     nodirectpush = {
       sid       = "NoDirectPushToTrunk"
       effect    = "Deny"
@@ -103,7 +99,7 @@ module "platform_approver" {
   create_inline_policy = true
   inline_policy_permissions = {
     approvals = {
-      sid = "PullRequestApprovals"
+      sid = "PullRequestApprovalsAndMerge"
       actions = [
         "codecommit:GetPullRequest",
         "codecommit:ListPullRequests",
@@ -112,6 +108,18 @@ module "platform_approver" {
         "codecommit:EvaluatePullRequestApprovalRules",
         "codecommit:GetCommit",
         "codecommit:GetDifferences",
+        "codecommit:MergePullRequestByFastForward",
+        "codecommit:GetRepository",
+        "codecommit:ListBranches",
+        "codecommit:ListRepositories",
+        "codecommit:GetFile",
+        "codecommit:GetFolder",
+        "codecommit:BatchGetPullRequests",
+        "codecommit:GetMergeConflicts",
+        "codecommit:GetMergeOptions",
+        "codecommit:GetComment",
+        "codecommit:GetCommentsForPullRequest",
+        "codecommit:GetCommentsForComparedCommit",
       ]
       resources = [local.repo_arn]
     }

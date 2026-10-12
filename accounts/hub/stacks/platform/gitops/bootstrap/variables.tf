@@ -18,6 +18,16 @@ variable "manifests_tag" {
   type        = string
 }
 
+variable "ack_created_roles_boundary_arn" {
+  description = "Permissions boundary every role ACK creates must carry — written to platform-config so eks.k can read it via externalRef"
+  type        = string
+}
+
+variable "platform_repo_name" {
+  description = "CodeCommit repo name of the platform repo — builds the git source URL for the digest-pinned layer-1-rgds Application (platform/gitops/apps-pinned). Comes from platform.tfvars, same as in the pipeline and eks stacks."
+  type        = string
+}
+
 variable "spoke1_carm_role_arn" {
   description = "ARN of the spoke1 account's CARM trust role (accounts/spoke/stacks/carm-trust output) — the IAMRoleSelector routes any ACK resource in namespace spoke1 to this role"
   type        = string
